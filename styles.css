@@ -1,0 +1,138 @@
+:root {
+    --mf-blue: #1877F2;
+    --mf-yellow: #F4B400;
+}
+
+@keyframes banner-swing {
+    0% {
+        opacity: 0;
+        transform: perspective(600px) rotateX(-90deg);
+        transform-origin: top;
+    }
+    40% {
+        transform: perspective(600px) rotateX(20deg);
+        transform-origin: top;
+    }
+    60% {
+        transform: perspective(600px) rotateX(-10deg);
+        transform-origin: top;
+    }
+    80% {
+        transform: perspective(600px) rotateX(5deg);
+        transform-origin: top;
+    }
+    100% {
+        opacity: 1;
+        transform: perspective(600px) rotateX(0deg);
+        transform-origin: top;
+    }
+}
+
+@media (max-width: 767px) {
+    .block .container, .container {
+        padding: 0 15px;
+    }
+}
+.container {
+    width: 1300px;
+    max-width: 100%;
+}
+/* Custom styles moved from new.html */
+html {
+    font-size: 16px; /* Explicitly set base font size to 16px */
+    scroll-behavior: smooth;
+}
+body {
+    background-color: #f0f4f9; /* Adjusted to match the body background in new.html */
+}.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+}
+
+/* Modern Progressive Entrance States */
+.fade-prep {
+    opacity: 0;
+    transform: translateY(16px);
+    will-change: transform, opacity;
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fade-prep.reveal {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Hide scrollbar for horizontal carousels */
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Banner Strings Animation */
+.string-left {
+    transition: d 0.3s ease-in-out;
+    d: path("M 50 0 Q 25 15 15 20"); /* Slack curve */
+}
+.group:hover .string-left {
+    d: path("M 50 0 Q 32.5 10 15 20"); /* Taut straight line */
+}
+.string-right {
+    transition: d 0.3s ease-in-out;
+    d: path("M 50 0 Q 75 15 85 20"); /* Slack curve */
+}
+.group:hover .string-right {
+    d: path("M 50 0 Q 67.5 10 85 20"); /* Taut straight line */
+}
+
+/* Chart Line Animation */
+.chart-line {
+    stroke-dasharray: 70;
+    stroke-dashoffset: 0;
+}
+.group:hover .chart-line {
+    animation: draw-chart 1.2s ease-out forwards;
+}
+@keyframes draw-chart {
+    0%, 15% { stroke-dashoffset: 70; }
+    85%, 100% { stroke-dashoffset: 0; }
+}
+
+.swing-prep {
+    opacity: 0;
+}
+
+.swing-reveal {
+    animation: banner-swing 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* --- Icon Animations (Rewritten for Stability) --- */
+
+/* 1. Smooth Bounce Animation */
+@keyframes smooth-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+.group:hover .animate-smooth-bounce-hover {
+    animation: smooth-bounce 1s ease-in-out infinite;
+}
+
+/* 2. Heart Animations */
+@keyframes heart-crack-anim {
+    0%, 20% { opacity: 1; transform: scale(1) translateY(0); }
+    40%, 60% { opacity: 0; transform: scale(1.1) translateY(0); }
+    80%, 100% { opacity: 1; transform: scale(1.25) translateY(-4px); }
+}
+@keyframes heart-solid-anim {
+    0%, 20% { opacity: 0; transform: scale(1); }
+    40%, 60% { opacity: 1; transform: scale(1.1); }
+    80%, 100% { opacity: 0; transform: scale(1.25); }
+}
+.group:hover .animate-heart-cracked {
+    animation: heart-crack-anim 1.5s ease-in-out infinite alternate;
+}
+.group:hover .animate-heart-solid {
+    animation: heart-solid-anim 1.5s ease-in-out infinite alternate;
+}
