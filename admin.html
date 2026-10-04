@@ -93,6 +93,10 @@
         // Once verified it is kept in memory for this page only and sent with each new row.
         let adminPassword = null;
 
+        // Until APPS_SCRIPT_URL is set: admin password is "admin", and added ambassadors are
+        // saved in this browser only (they can log in on index.html in the same browser).
+        const DEMO_MODE = APPS_SCRIPT_URL.startsWith('PASTE_');
+
         // Apps Script web apps don't answer CORS preflights, so the JSON body is sent as
         // text/plain (a "simple" request). doPost still parses it from e.postData.contents.
         async function callAppsScript(payload) {
@@ -114,15 +118,14 @@
             const btn = e.target.querySelector('button[type="submit"]');
             const password = document.getElementById('admin-password').value;
             errorDiv.classList.add('hidden');
-            if (APPS_SCRIPT_URL.startsWith('PASTE_')) {
-                errorDiv.textContent = 'APPS_SCRIPT_URL is not set in admin.html yet.';
-                errorDiv.classList.remove('hidden');
-                return;
-            }
             btn.disabled = true;
             btn.textContent = 'Checking...';
             try {
-                await callAppsScript({ action: 'verify', password });
+                if (DEMO_MODE) {
+                    if (password !== 'admin') throw new Error('incorrect admin password');
+                } else {
+                    await callAppsScript({ action: 'verify', password });
+                }
                 adminPassword = password;
                 document.getElementById('admin-password').value = '';
                 document.getElementById('admin-gate').classList.add('hidden');
@@ -183,8 +186,13 @@
                 }
                 try {
                     const row = await MFCredentials.encryptCredential(entry.username, entry.password, driveLink);
-                    const data = await callAppsScript({ action: 'add', password: adminPassword, ...row });
-                    addResult(entry.username, true, data.updated ? 'updated (password replaced)' : 'added');
+                    if (DEMO_MODE) {
+                        if (!MFCredentials.saveLocalRow(row)) throw new Error('browser storage is blocked');
+                        addResult(entry.username, true, 'added (demo: works in this browser only)');
+                    } else {
+                        const data = await callAppsScript({ action: 'add', password: adminPassword, ...row });
+                        addResult(entry.username, true, data.updated ? 'updated (password replaced)' : 'added');
+                    }
                     succeeded++;
                 } catch (err) {
                     addResult(entry.username, false, `failed: ${err.message}`);

@@ -71,3 +71,10 @@ test('parseAmbassadorLines splits on first comma, trims, flags bad lines', () =>
         { line: 'nopass,', error: 'password is empty' },
     ]);
 });
+
+test('built-in demo rows log in as admin/admin and test/test only', async () => {
+    const LINK_DEMO = 'https://drive.google.com/drive/u/0/folders/1ITotWU9pDqOpgrvdVDFneRcqEExrrMuN';
+    assert.equal(await MF.findDriveLink(MF.DEMO_ROWS, 'admin', 'admin'), LINK_DEMO);
+    assert.equal(await MF.findDriveLink(MF.DEMO_ROWS, 'Test', 'test'), LINK_DEMO);
+    assert.equal(await MF.findDriveLink(MF.DEMO_ROWS, 'test', 'admin'), null);
+});

@@ -165,9 +165,17 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Checking...';
             try {
-                const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const rows = MFCredentials.parseCredentialCsv(await res.text());
+                // Demo logins and rows added in this browser work even before the sheet is set up.
+                let rows = [...MFCredentials.DEMO_ROWS, ...MFCredentials.loadLocalRows()];
+                if (!SHEET_CSV_URL.startsWith('PASTE_')) {
+                    try {
+                        const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        rows = rows.concat(MFCredentials.parseCredentialCsv(await res.text()));
+                    } catch (err) {
+                        console.error('Could not load credentials sheet:', err);
+                    }
+                }
                 const link = await MFCredentials.findDriveLink(rows, username, password);
                 // Only ever put an https: URL into the href.
                 if (link && /^https:\/\//i.test(link)) {

@@ -132,7 +132,27 @@
         return out;
     }
 
-    const api = { encryptCredential, decryptCredential, findDriveLink, parseCredentialCsv, parseAmbassadorLines };
+    // Demo logins (admin/admin, test/test), encrypted like any other row. Always accepted,
+    // so the login works before the Google Sheet is set up. Remove before real use.
+    const DEMO_ROWS = [
+        { user: 'admin', salt: 'yJcPeIQjaGNWs2CsQIRkTA==', iv: '9jlsKe+F6doFF1Iq', ct: '7hCFWhuEosGB01xthi103zuHuVdjTntS7kPr9JSBffI1rtRtCgdgXvUoOmmvzjxav6MJ5ptVagzaMFaYOaFbZQGajIluVBYjAG++dizWMZatUTfocKN1dAsEpks=' },
+        { user: 'test', salt: 'Cbg7/qre1apC2by/QKP2cg==', iv: 'QHoR92QjaoWl6GSd', ct: 'CKL0t04rlLipE8orHn65Byk9Bre1nejaim6Xp8tcOowiT9H0TuMQ83jGTgEp2CNHZh1BzQ4r68Lqp/HUIZgrZUcHj6FbYQwtxRfNoLrLpZZsG8vhxZ+zXHOc47E=' },
+    ];
+
+    // Rows added from admin.html in demo mode, stored in this browser only.
+    const LOCAL_ROWS_KEY = 'mf-demo-ambassadors';
+    function loadLocalRows() {
+        try { return JSON.parse(localStorage.getItem(LOCAL_ROWS_KEY)) || []; } catch (err) { return []; }
+    }
+    function saveLocalRow(row) {
+        const wanted = normalizeUsername(row.user);
+        const rows = loadLocalRows().filter(r => normalizeUsername(r.user) !== wanted);
+        rows.push(row);
+        try { localStorage.setItem(LOCAL_ROWS_KEY, JSON.stringify(rows)); return true; } catch (err) { return false; }
+    }
+
+    const api = { encryptCredential, decryptCredential, findDriveLink, parseCredentialCsv, parseAmbassadorLines,
+        DEMO_ROWS, loadLocalRows, saveLocalRow };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     else root.MFCredentials = api;
 })(this);
