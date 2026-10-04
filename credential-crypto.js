@@ -132,12 +132,7 @@
         return out;
     }
 
-    async function sha256Hex(text) {
-        const digest = await subtle.digest('SHA-256', enc.encode(text));
-        return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    const api = { encryptCredential, decryptCredential, findDriveLink, parseCredentialCsv, parseAmbassadorLines, sha256Hex };
+    const api = { encryptCredential, decryptCredential, findDriveLink, parseCredentialCsv, parseAmbassadorLines };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     else root.MFCredentials = api;
 })(this);

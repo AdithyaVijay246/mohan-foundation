@@ -84,35 +84,59 @@
 
     <script src="credential-crypto.js"></script>
     <script>
-        // ---- Configuration: fill these in (see README.md) ----
-        // SHA-256 hex of the shared admin password. Never put the plaintext password here.
-        const ADMIN_PASSWORD_HASH = 'PASTE_SHA256_HEX_OF_ADMIN_PASSWORD_HERE';
+        // ---- Configuration (see README.md) ----
         // URL of the deployed Apps Script Web App (apps-script/Code.gs).
         const APPS_SCRIPT_URL = 'PASTE_APPS_SCRIPT_WEB_APP_URL_HERE';
-        // Must equal ADMIN_API_KEY in apps-script/Code.gs.
-        const ADMIN_API_KEY = 'PASTE_ADMIN_API_KEY_HERE';
         const DEFAULT_DRIVE_LINK = 'https://drive.google.com/drive/u/0/folders/1ITotWU9pDqOpgrvdVDFneRcqEExrrMuN';
 
-        const isPlaceholder = value => value.startsWith('PASTE_');
+        // The admin password is checked by Code.gs (stored in its Script Properties), not here.
+        // Once verified it is kept in memory for this page only and sent with each new row.
+        let adminPassword = null;
+
+        // Apps Script web apps don't answer CORS preflights, so the JSON body is sent as
+        // text/plain (a "simple" request). doPost still parses it from e.postData.contents.
+        async function callAppsScript(payload) {
+            const res = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'unknown error');
+            return data;
+        }
 
         // --- Admin gate ---
         document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const errorDiv = document.getElementById('admin-login-error');
-            if (isPlaceholder(ADMIN_PASSWORD_HASH)) {
-                errorDiv.textContent = 'ADMIN_PASSWORD_HASH is not set in admin.html yet.';
+            const btn = e.target.querySelector('button[type="submit"]');
+            const password = document.getElementById('admin-password').value;
+            errorDiv.classList.add('hidden');
+            if (APPS_SCRIPT_URL.startsWith('PASTE_')) {
+                errorDiv.textContent = 'APPS_SCRIPT_URL is not set in admin.html yet.';
                 errorDiv.classList.remove('hidden');
                 return;
             }
-            const hash = await MFCredentials.sha256Hex(document.getElementById('admin-password').value);
-            if (hash === ADMIN_PASSWORD_HASH.toLowerCase()) {
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            try {
+                await callAppsScript({ action: 'verify', password });
+                adminPassword = password;
+                document.getElementById('admin-password').value = '';
                 document.getElementById('admin-gate').classList.add('hidden');
                 document.getElementById('admin-panel').classList.remove('hidden');
                 document.getElementById('drive-link').value = DEFAULT_DRIVE_LINK;
                 document.getElementById('ambassador-lines').focus();
-            } else {
-                errorDiv.textContent = 'Incorrect password.';
+            } catch (err) {
+                errorDiv.textContent = err.message === 'incorrect admin password'
+                    ? 'Incorrect password.'
+                    : `Could not check the password: ${err.message}`;
                 errorDiv.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Unlock';
             }
         });
 
@@ -130,20 +154,6 @@
             document.getElementById('results').appendChild(li);
         }
 
-        // Apps Script web apps don't answer CORS preflights, so the JSON body is sent as
-        // text/plain (a "simple" request). doPost still parses it from e.postData.contents.
-        async function postRow(row) {
-            const res = await fetch(APPS_SCRIPT_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ ...row, apiKey: ADMIN_API_KEY }),
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            if (!data.success) throw new Error(data.error || 'unknown error');
-            return data;
-        }
-
         document.getElementById('add-ambassadors-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('add-ambassadors-btn');
@@ -152,10 +162,6 @@
             results.innerHTML = '';
             document.getElementById('results-wrapper').classList.remove('hidden');
 
-            if (isPlaceholder(APPS_SCRIPT_URL) || isPlaceholder(ADMIN_API_KEY)) {
-                addResult('Setup', false, 'APPS_SCRIPT_URL and ADMIN_API_KEY must be set in admin.html first.');
-                return;
-            }
             if (!/^https:\/\//i.test(driveLink)) {
                 addResult('Drive link', false, 'must start with https://');
                 return;
@@ -177,7 +183,7 @@
                 }
                 try {
                     const row = await MFCredentials.encryptCredential(entry.username, entry.password, driveLink);
-                    const data = await postRow(row);
+                    const data = await callAppsScript({ action: 'add', password: adminPassword, ...row });
                     addResult(entry.username, true, data.updated ? 'updated (password replaced)' : 'added');
                     succeeded++;
                 } catch (err) {

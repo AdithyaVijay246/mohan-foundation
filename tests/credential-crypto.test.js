@@ -71,7 +71,3 @@ test('parseAmbassadorLines splits on first comma, trims, flags bad lines', () =>
         { line: 'nopass,', error: 'password is empty' },
     ]);
 });
-
-test('sha256Hex matches known vector', async () => {
-    assert.equal(await MF.sha256Hex('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
-});
