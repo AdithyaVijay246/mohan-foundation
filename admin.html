@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Ambassador Admin | MOHAN Foundation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS configuration (same as index.html) -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mfblue: 'var(--mf-blue)',
+                        mfyellow: 'var(--mf-yellow)',
+                    },
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-[#f0f4f9] antialiased font-sans text-black relative min-h-screen">
+
+    <div class="bg-white w-full shadow-sm py-3 sm:py-4">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
+            <a href="index.html">
+                <img src="https://www.mohanfoundation.org/images/mohan-foundation-icon-ver2.png" title="MOHAN Foundation" alt="MOHAN Foundation" class="h-12 sm:h-14 w-auto">
+            </a>
+            <a href="index.html" class="text-sm text-slate-500 hover:text-mfblue transition-colors">
+                <i class="fa-solid fa-arrow-left mr-1"></i> Back to site
+            </a>
+        </div>
+    </div>
+
+    <main class="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+
+        <!-- Step 1: admin password gate -->
+        <section id="admin-gate" class="relative bg-[#1c2b46] text-white rounded-3xl shadow-xl p-8 sm:p-12 max-w-md mx-auto">
+            <h1 class="text-3xl font-bold text-white mb-2">Admin Login</h1>
+            <p class="text-blue-200 mb-6">Manage ambassador credentials.</p>
+            <form id="admin-login-form" class="space-y-4">
+                <div>
+                    <label for="admin-password" class="sr-only">Admin password</label>
+                    <input type="password" id="admin-password" placeholder="Admin password" required autocomplete="current-password" class="w-full px-4 py-3 border border-blue-900/50 bg-white/5 rounded-lg text-base text-white placeholder-blue-300 focus:ring-2 focus:ring-mfyellow focus:border-mfyellow outline-none transition">
+                </div>
+                <button type="submit" class="w-full px-8 py-3 bg-mfyellow hover:bg-yellow-400 text-black font-bold rounded-lg transition shadow-md hover:shadow-lg transform hover:-translate-y-0.5 duration-200">
+                    Unlock
+                </button>
+                <div id="admin-login-error" class="text-red-400 text-sm font-medium text-center hidden pt-2">Incorrect password.</div>
+            </form>
+        </section>
+
+        <!-- Step 2: add ambassadors -->
+        <section id="admin-panel" class="hidden bg-white rounded-3xl shadow-xl border border-slate-200 p-8 sm:p-12">
+            <h1 class="text-3xl font-bold text-black mb-2">Add Ambassadors</h1>
+            <p class="text-slate-600 mb-8">Each person gets an encrypted row in the credentials sheet. Re-adding an existing username replaces their password.</p>
+
+            <form id="add-ambassadors-form" class="space-y-6">
+                <div>
+                    <label for="drive-link" class="block text-sm font-bold text-slate-800 mb-2">Google Drive link for this batch</label>
+                    <input type="url" id="drive-link" required class="w-full px-4 py-3 border border-slate-300 rounded-lg text-base focus:ring-2 focus:ring-mfyellow focus:border-mfyellow outline-none transition">
+                    <p class="text-xs text-slate-500 mt-1">This is what these ambassadors will see after logging in.</p>
+                </div>
+                <div>
+                    <label for="ambassador-lines" class="block text-sm font-bold text-slate-800 mb-2">Ambassadors (one per line: <code class="bg-slate-100 px-1 rounded">username,password</code>)</label>
+                    <textarea id="ambassador-lines" rows="8" required spellcheck="false" autocomplete="off" placeholder="username,password" class="w-full px-4 py-3 border border-slate-300 rounded-lg text-base font-mono focus:ring-2 focus:ring-mfyellow focus:border-mfyellow outline-none transition"></textarea>
+                    <p class="text-xs text-slate-500 mt-1">Usernames are case-insensitive. Blank lines and lines starting with # are ignored.</p>
+                </div>
+                <button type="submit" id="add-ambassadors-btn" class="w-full sm:w-auto px-8 py-3 bg-mfyellow hover:bg-yellow-400 text-black font-bold rounded-full transition shadow-md hover:shadow-lg transform hover:-translate-y-0.5 duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none">
+                    Add These Ambassadors
+                </button>
+            </form>
+
+            <div id="results-wrapper" class="hidden mt-8 pt-8 border-t border-slate-100">
+                <h2 class="text-xs font-bold text-slate-800 uppercase tracking-widest mb-4">Results</h2>
+                <ul id="results" class="space-y-2 text-sm"></ul>
+            </div>
+        </section>
+    </main>
+
+    <script src="credential-crypto.js"></script>
+    <script>
+        // ---- Configuration: fill these in (see README.md) ----
+        // SHA-256 hex of the shared admin password. Never put the plaintext password here.
+        const ADMIN_PASSWORD_HASH = 'PASTE_SHA256_HEX_OF_ADMIN_PASSWORD_HERE';
+        // URL of the deployed Apps Script Web App (apps-script/Code.gs).
+        const APPS_SCRIPT_URL = 'PASTE_APPS_SCRIPT_WEB_APP_URL_HERE';
+        // Must equal ADMIN_API_KEY in apps-script/Code.gs.
+        const ADMIN_API_KEY = 'PASTE_ADMIN_API_KEY_HERE';
+        const DEFAULT_DRIVE_LINK = 'https://drive.google.com/drive/u/0/folders/1ITotWU9pDqOpgrvdVDFneRcqEExrrMuN';
+
+        const isPlaceholder = value => value.startsWith('PASTE_');
+
+        // --- Admin gate ---
+        document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorDiv = document.getElementById('admin-login-error');
+            if (isPlaceholder(ADMIN_PASSWORD_HASH)) {
+                errorDiv.textContent = 'ADMIN_PASSWORD_HASH is not set in admin.html yet.';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            const hash = await MFCredentials.sha256Hex(document.getElementById('admin-password').value);
+            if (hash === ADMIN_PASSWORD_HASH.toLowerCase()) {
+                document.getElementById('admin-gate').classList.add('hidden');
+                document.getElementById('admin-panel').classList.remove('hidden');
+                document.getElementById('drive-link').value = DEFAULT_DRIVE_LINK;
+                document.getElementById('ambassador-lines').focus();
+            } else {
+                errorDiv.textContent = 'Incorrect password.';
+                errorDiv.classList.remove('hidden');
+            }
+        });
+
+        // --- Adding ambassadors ---
+        function addResult(label, ok, detail) {
+            const li = document.createElement('li');
+            li.className = 'flex items-start gap-2 px-4 py-2 rounded-lg ' + (ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-700');
+            const icon = document.createElement('i');
+            icon.className = 'fa-solid mt-0.5 ' + (ok ? 'fa-circle-check' : 'fa-circle-xmark');
+            const text = document.createElement('span');
+            const name = document.createElement('strong');
+            name.textContent = label;
+            text.append(name, ` — ${detail}`);
+            li.append(icon, text);
+            document.getElementById('results').appendChild(li);
+        }
+
+        // Apps Script web apps don't answer CORS preflights, so the JSON body is sent as
+        // text/plain (a "simple" request). doPost still parses it from e.postData.contents.
+        async function postRow(row) {
+            const res = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ ...row, apiKey: ADMIN_API_KEY }),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'unknown error');
+            return data;
+        }
+
+        document.getElementById('add-ambassadors-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('add-ambassadors-btn');
+            const results = document.getElementById('results');
+            const driveLink = document.getElementById('drive-link').value.trim();
+            results.innerHTML = '';
+            document.getElementById('results-wrapper').classList.remove('hidden');
+
+            if (isPlaceholder(APPS_SCRIPT_URL) || isPlaceholder(ADMIN_API_KEY)) {
+                addResult('Setup', false, 'APPS_SCRIPT_URL and ADMIN_API_KEY must be set in admin.html first.');
+                return;
+            }
+            if (!/^https:\/\//i.test(driveLink)) {
+                addResult('Drive link', false, 'must start with https://');
+                return;
+            }
+            const entries = MFCredentials.parseAmbassadorLines(document.getElementById('ambassador-lines').value);
+            if (!entries.length) {
+                addResult('Input', false, 'no username,password lines found');
+                return;
+            }
+
+            btn.disabled = true;
+            let succeeded = 0;
+            // Sequential on purpose: keeps duplicate-username handling in the sheet predictable.
+            for (const [i, entry] of entries.entries()) {
+                btn.textContent = `Adding ${i + 1} of ${entries.length}...`;
+                if (entry.error) {
+                    addResult(entry.line, false, `failed: ${entry.error}`);
+                    continue;
+                }
+                try {
+                    const row = await MFCredentials.encryptCredential(entry.username, entry.password, driveLink);
+                    const data = await postRow(row);
+                    addResult(entry.username, true, data.updated ? 'updated (password replaced)' : 'added');
+                    succeeded++;
+                } catch (err) {
+                    addResult(entry.username, false, `failed: ${err.message}`);
+                }
+            }
+            btn.disabled = false;
+            btn.textContent = 'Add These Ambassadors';
+            // Clear the passwords from the page once everything went through.
+            if (succeeded === entries.length) document.getElementById('ambassador-lines').value = '';
+        });
+    </script>
+</body>
+</html>

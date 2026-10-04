@@ -710,8 +710,17 @@
                             </button>
                             <div id="login-error" class="text-red-600 text-sm font-medium text-center hidden pt-2">Invalid credentials. Please try again.</div>
                         </form>
+                        <div id="drive-link-reveal" class="hidden mt-4 p-4 rounded-lg bg-white/10 border border-mfyellow/40 text-center">
+                            <p class="text-blue-200 text-sm mb-2">Welcome! Your training materials are here:</p>
+                            <a id="drive-link-anchor" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-mfyellow font-bold hover:underline">
+                                <i class="fa-brands fa-google-drive"></i>
+                                <span>Open Google Drive folder</span>
+                            </a>
+                        </div>
                         <p class="text-xs text-blue-300 text-center mt-4">
                             <a href="#" class="hover:underline hover:text-white">Forgot password?</a>
+                            <span class="mx-1 text-blue-300/50">·</span>
+                            <a href="admin.html" class="text-blue-300/60 hover:underline hover:text-white">Admin</a>
                         </p>
                     </section>
                 </div>
@@ -878,6 +887,7 @@
         </div>
     </main>
 
+    <script src="credential-crypto.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

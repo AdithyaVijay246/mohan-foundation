@@ -138,23 +138,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Ambassador Login Form Logic
+    // Credentials live in a Google Sheet published to the web as CSV (header: user,salt,iv,ct).
+    // Each row's ct is the Drive link encrypted per credential-crypto.js; a row only decrypts
+    // with the right username + password. Rows are added via admin.html.
+    // TODO: In the Sheet, File > Share > Publish to web > (sheet) > CSV, and paste that URL here.
+    const SHEET_CSV_URL = 'PASTE_PUBLISHED_SHEET_CSV_URL_HERE';
+
     const loginForm = document.getElementById('ambassador-login-form');
     if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault(); // Prevent the form from submitting traditionally
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('login-error');
+            const reveal = document.getElementById('drive-link-reveal');
+            const anchor = document.getElementById('drive-link-anchor');
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
 
-            // --- Placeholder Authentication ---
-            // In a real application, you would send these credentials to a server.
-            // For this demo, we'll use a simple hardcoded check.
-            if (username === 'test@gmail.com' && password === 'test') {
-                errorDiv.classList.add('hidden');
-                // On successful login, redirect to the specified Google Drive link.
-                window.location.href = 'https://drive.google.com'; 
-            } else {
+            const showError = (message) => {
+                errorDiv.textContent = message;
                 errorDiv.classList.remove('hidden');
+                reveal.classList.add('hidden');
+            };
+
+            errorDiv.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Checking...';
+            try {
+                const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const rows = MFCredentials.parseCredentialCsv(await res.text());
+                const link = await MFCredentials.findDriveLink(rows, username, password);
+                // Only ever put an https: URL into the href.
+                if (link && /^https:\/\//i.test(link)) {
+                    anchor.href = link;
+                    reveal.classList.remove('hidden');
+                } else {
+                    showError('Invalid credentials. Please try again.');
+                }
+            } catch (err) {
+                console.error('Ambassador login failed:', err);
+                showError('Could not reach the login service. Please try again later.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Login';
             }
         });
     }
